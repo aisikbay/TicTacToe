@@ -5,27 +5,22 @@
 # PLAYER is X
 # COMPUTER is O
 # Board layout
-#  0 | 1 | 2
-# -----------
-#  3 | 4 | 5
-# -----------
-#  6 | 7 | 8
 
 # random used to make computer choices different each time
-# when only the type of choice matters (side, corner)
+# when only the type of choice matters (side, corner, center)
 import random
 
+sideLength = 3
+totalLength = sideLength**2
+
 def printBoard(b):
-    # Color codes
     GRAY = '\033[30m'
     RED = '\033[31m'
     BLUE = '\033[34m'
-    # End code
     ENDC = '\033[m'
-    for i in range(9):
+    for i in range(totalLength):
         print(' ', end="")
-        # If a spot is free, print the index in gray.
-        # Otherwise print the marker in that player's color
+        # If a spot is free, print the index number in gray else print the marker in its color
         if b[i] == None:
             print(GRAY + str(i) + ENDC, end="")
         elif b[i] == 'X':
@@ -33,25 +28,25 @@ def printBoard(b):
         elif b[i] == 'O':
             print(BLUE + b[i] + ENDC, end="")
         # Special cases for end of row formatting
-        if i not in [2, 5, 8]:
-            print(' |', end="")
-        elif i != 8:
-            print('\n-----------')
+        if i % sideLength + 1 != sideLength:
+            #Keep cell spacing consistent
+            if i < 10 or b[i] != None:
+                print(' ', end="")
+            print('|', end="")
+        elif i != totalLength - 1:
+            print('\n' + '-' * (sideLength * 4 - 1))
     print("\n")
 
-# Check if player p has three cells in a row on board b
 def checkWin(b, p):
-    # Check horizontals and verticals (six winning cases)
-    for i in range(3):
-        if all(b[i * 3 + j] == p for j in range(3)) or all(b[j * 3 + i] == p for j in range(3)):
+    # Horizontals and verticals
+    for i in range(sideLength):
+        if all(b[i * sideLength + j] == p for j in range(sideLength)) or all(b[j * sideLength + i] == p for j in range(sideLength)):
             return True
-    # Check diagonals (two winning cases)
-    if (b[0] == p and b[4] == p and b[8] == p) or (b[2] == p and b[4] == p and b[6] == p):
+    # Diagonals
+    if all(b[i * sideLength + i] == p for i in range(sideLength)) or all(b[i * sideLength + sideLength - i - 1] == p for i in range(sideLength)):
         return True
-    # There are no winning conditions of player p
     return False
 
-# Checks if the board is full (after the check of no winning condition)
 def checkDraw(b):
     for i in b:
         if i is None:
@@ -69,51 +64,68 @@ def testForkingMove(b, player, cell):
     boardCopy = b.copy()
     boardCopy[cell] = player
     winningMoves = 0
-    for j in range(9):
+    for j in range(totalLength):
         if boardCopy[j] is None and testWinningMove(boardCopy, player, j):
             winningMoves += 1
     return winningMoves > 1
 
 def computerMove(b):
-    corners = [0, 2, 6, 8]
-    sides = [1, 3, 5, 7]
-    center = 4
+    corners = []
+    for i in range(2):
+        for j in range(2):
+            row = i * (sideLength - 1)
+            col = j * (sideLength - 1)
+            corners.append(row * sideLength + col)
+
+    sides = []
+    sides.extend(range(1, sideLength - 1))
+    for i in range(1, sideLength - 1):
+        sides.append(i * sideLength)
+        sides.append((i + 1) * sideLength - 1)
+    sides.extend(range((sideLength - 1) * sideLength + 1, totalLength - 1))
+        
+    centers = []
+    if sideLength == 3:
+        centers.append(totalLength // 2)
+    else:
+        for i in range(1, sideLength - 1):
+            centers.extend(range(i * sideLength + 1, (i + 1) * sideLength - 1))
+
     random.shuffle(corners)
     random.shuffle(sides)
+    random.shuffle(centers)
+
     # Check for moves that will make computer win
-    for cell in range(9):
+    for cell in range(totalLength):
         if b[cell] is None and testWinningMove(b, 'O', cell):
             return cell
     # Check for moves to block player from winning
-    for cell in range(9):
+    for cell in range(totalLength):
         if b[cell] is None and testWinningMove(b, 'X', cell):
             return cell
     # Check computer forking opportunity
-    for cell in range(9):
+    for cell in range(totalLength):
         if b[cell] is None and testForkingMove(b, 'O', cell):
             return cell
     # Check player forking opportunity, count potential forks
     forks = 0
-    for cell in range(9):
+    for cell in range(totalLength):
         if b[cell] is None and testForkingMove(b, 'X', cell):
             forks += 1
             tempMove = cell
     if forks == 1:
         return tempMove
-    # If there is more than one fork the player can use
-    # Force the player to block computer win by choosing a side
+    # If there is more than one fork the player can use, force the player to block computer win by choosing a side
     elif forks == 2:
         for cell in sides:
             if b[cell] is None:
                 return cell
-    # Pick the center
-    if b[center] is None:
-        return center
-    # Pick any corner
+    for cell in centers:
+        if b[cell] is None:
+            return cell
     for cell in corners:
         if b[cell] is None:
             return cell
-    # Pick any side
     for cell in sides:
         if b[cell] is None:
             return cell
@@ -124,7 +136,7 @@ def main():
     while gameLoop:
         playerMark = 'O' # computer goes first by default
         inGame = True
-        board = [None] * 9
+        board = [None] * totalLength
         print("Press ENTER to exit.")
         orderTurn = input("Will you go first or second? (1/2) ")
         # EXIT
@@ -142,8 +154,7 @@ def main():
         while inGame:
             # Player's turn
             if playerMark == 'X':
-                cellStr = input("Your move (0-8): ")
-
+                cellStr = input('Your move (0-{}): '.format(totalLength-1))
                 # Invalid input (not an integer)
                 try:
                     cell = int(cellStr)
@@ -151,13 +162,14 @@ def main():
                     print('Invalid move')
                     continue
                 # Spot is out of range
-                if cell > 8 or cell < 0:
-                    print('Please choose a spot 0-8.')
+                if cell not in range(totalLength):
+                    print('Please choose a spot 0-{}.'.format(totalLength-1))
                     continue
                 # Spot is taken
                 if board[cell] != None:
                     print('Spot is taken.')
                     continue
+
             # Computer's turn
             else:
                 cell = computerMove(board)
