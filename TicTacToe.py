@@ -2,12 +2,7 @@
 # Aram Isikbay
 # *Please use VSCode for testing: the UI color is designed with the VSCode terminal in mind.
 
-# PLAYER is X
-# COMPUTER is O
-# Board layout
-
-# random used to make computer choices different each time
-# when only the type of choice matters (side, corner, center)
+# random used to make computer choices different each time when only the type of choice matters (side, corner, center)
 import random
 
 sideLength = 3
@@ -53,13 +48,11 @@ def checkDraw(b):
             return False
     return True
 
-# Tests if a move will win the game
 def testWinningMove(b, player, cell):
     boardCopy = b.copy()
     boardCopy[cell] = player
     return checkWin(boardCopy, player)
 
-# Tests if a move will create a forking opportunity
 def testForkingMove(b, player, cell):
     boardCopy = b.copy()
     boardCopy[cell] = player
@@ -70,31 +63,6 @@ def testForkingMove(b, player, cell):
     return winningMoves > 1
 
 def computerMove(b):
-    corners = []
-    for i in range(2):
-        for j in range(2):
-            row = i * (sideLength - 1)
-            col = j * (sideLength - 1)
-            corners.append(row * sideLength + col)
-
-    sides = []
-    sides.extend(range(1, sideLength - 1))
-    for i in range(1, sideLength - 1):
-        sides.append(i * sideLength)
-        sides.append((i + 1) * sideLength - 1)
-    sides.extend(range((sideLength - 1) * sideLength + 1, totalLength - 1))
-        
-    centers = []
-    if sideLength == 3:
-        centers.append(totalLength // 2)
-    else:
-        for i in range(1, sideLength - 1):
-            centers.extend(range(i * sideLength + 1, (i + 1) * sideLength - 1))
-
-    random.shuffle(corners)
-    random.shuffle(sides)
-    random.shuffle(centers)
-
     # Check for moves that will make computer win
     for cell in range(totalLength):
         if b[cell] is None and testWinningMove(b, 'O', cell):
@@ -120,85 +88,109 @@ def computerMove(b):
         for cell in sides:
             if b[cell] is None:
                 return cell
+    centers = []
+    if sideLength == 3:
+        centers.append(totalLength // 2)
+    else:
+        for i in range(1, sideLength - 1):
+            centers.extend(range(i * sideLength + 1, (i + 1) * sideLength - 1))
+        random.shuffle(centers)
     for cell in centers:
         if b[cell] is None:
             return cell
+        
+    corners = []
+    for i in range(2):
+        for j in range(2):
+            row = i * (sideLength - 1)
+            col = j * (sideLength - 1)
+            corners.append(row * sideLength + col)
+    random.shuffle(corners)
     for cell in corners:
         if b[cell] is None:
             return cell
+        
+    sides = []
+    sides.extend(range(1, sideLength - 1))
+    for i in range(1, sideLength - 1):
+        sides.append(i * sideLength)
+        sides.append((i + 1) * sideLength - 1)
+    sides.extend(range((sideLength - 1) * sideLength + 1, totalLength - 1))
+    random.shuffle(sides)
     for cell in sides:
         if b[cell] is None:
             return cell
+
+def computerTurn(board, computerMark):
+    cell = computerMove(board)
+    board[cell] = computerMark
+    print('Computer move: ' + str(cell))
+
+def checkEnd(board, activeMark, playerMark):
+    if checkWin(board, activeMark):
+        printBoard(board)
+        if activeMark == playerMark:
+            print('You won!\n')
+        else:
+            print('You lost\n')
+        return True
+
+    if checkDraw(board):
+        printBoard(board)
+        print('It was a draw!\n')
+        return True
+    return False
+
+def playerTurn(board, playerMark):
+    printBoard(board)
+    validInput = False
+    while not validInput:
+        cellStr = input('Your move (0-{}): '.format(totalLength-1))
+        try:
+            cell = int(cellStr)
+        except ValueError:
+            print('Invalid move')
+            continue
+        if cell not in range(totalLength):
+            print('Please choose a spot 0-{}.'.format(totalLength-1))
+            continue
+        if board[cell] != None:
+            print('Spot is taken.')
+            continue
+        validInput = True
+        board[cell] = playerMark
 
 def main():
     gameLoop = True
     print("Welcome! ", end="")
     while gameLoop:
-        playerMark = 'O' # computer goes first by default
+        activeMark = 'X' # X traditionally goes first
         inGame = True
         board = [None] * totalLength
         print("Press ENTER to exit.")
-        orderTurn = input("Will you go first or second? (1/2) ")
-        # EXIT
-        if not orderTurn:
+        playerMark = input("Will you play as X or O? (X/O) ")
+        if not playerMark:
             inGame = False
             gameLoop = False
-        elif orderTurn == '1':
-            playerMark = 'X'
-            printBoard(board)
-        # Handle invalid input
-        elif orderTurn != '2':
-            print('Please choose 1 or 2.\n')
+        elif playerMark == 'X':
+            computerMark = 'O'
+        elif playerMark == 'O':
+            computerMark = 'X'
+        else:
+            print('Please choose X or O.\n')
             continue
 
         while inGame:
-            # Player's turn
-            if playerMark == 'X':
-                cellStr = input('Your move (0-{}): '.format(totalLength-1))
-                # Invalid input (not an integer)
-                try:
-                    cell = int(cellStr)
-                except ValueError:
-                    print('Invalid move')
-                    continue
-                # Spot is out of range
-                if cell not in range(totalLength):
-                    print('Please choose a spot 0-{}.'.format(totalLength-1))
-                    continue
-                # Spot is taken
-                if board[cell] != None:
-                    print('Spot is taken.')
-                    continue
-
-            # Computer's turn
+            if activeMark == playerMark:
+                playerTurn(board, playerMark)
             else:
-                cell = computerMove(board)
-                print('Computer move: ' + str(cell))
-
-            # Board is marked
-            board[cell] = playerMark
-
-            if checkWin(board, playerMark):
+                computerTurn(board, computerMark)
+            if checkEnd(board, activeMark, playerMark):
                 inGame = False
-                printBoard(board)
-                if playerMark == 'X':
-                    print('You won!\n')
-                else:
-                    print('You lost\n')
-                continue
-
-            if checkDraw(board):
-                inGame = False
-                printBoard(board)
-                print('It was a draw!\n')
-                continue
-
-            # Players switch turns
-            if playerMark == 'X':
-                playerMark = 'O'
+            if activeMark == 'X':
+                activeMark = 'O'
             else:
-                printBoard(board)
-                playerMark = 'X'
+                activeMark = 'X'
 
 if __name__ == "__main__":
     main()
