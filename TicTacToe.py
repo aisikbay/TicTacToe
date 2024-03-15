@@ -62,23 +62,23 @@ def testForkingMove(b, player, cell):
             winningMoves += 1
     return winningMoves > 1
 
-def computerMove(b):
+def computerMove(b, computerMark, playerMark):
     # Check for moves that will make computer win
     for cell in range(totalLength):
-        if b[cell] is None and testWinningMove(b, 'O', cell):
+        if b[cell] is None and testWinningMove(b, computerMark, cell):
             return cell
     # Check for moves to block player from winning
     for cell in range(totalLength):
-        if b[cell] is None and testWinningMove(b, 'X', cell):
+        if b[cell] is None and testWinningMove(b, playerMark, cell):
             return cell
     # Check computer forking opportunity
     for cell in range(totalLength):
-        if b[cell] is None and testForkingMove(b, 'O', cell):
+        if b[cell] is None and testForkingMove(b, computerMark, cell):
             return cell
     # Check player forking opportunity, count potential forks
     forks = 0
     for cell in range(totalLength):
-        if b[cell] is None and testForkingMove(b, 'X', cell):
+        if b[cell] is None and testForkingMove(b, playerMark, cell):
             forks += 1
             tempMove = cell
     if forks == 1:
@@ -121,8 +121,8 @@ def computerMove(b):
         if b[cell] is None:
             return cell
 
-def computerTurn(board, computerMark):
-    cell = computerMove(board)
+def computerTurn(board, computerMark, playerMark):
+    cell = computerMove(board, computerMark, playerMark)
     board[cell] = computerMark
     print('Computer move: ' + str(cell))
 
@@ -184,7 +184,7 @@ def main():
             if activeMark == playerMark:
                 playerTurn(board, playerMark)
             else:
-                computerTurn(board, computerMark)
+                computerTurn(board, computerMark, playerMark)
             if checkEnd(board, activeMark, playerMark):
                 inGame = False
             if activeMark == 'X':
